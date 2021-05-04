@@ -5,7 +5,6 @@ import (
 )
 
 type CategoryRepository interface {
-	FindByID(id int64) (*entity.Category, error)
-	FindByType(cateType string) (entity.CategoryList, error)
-	FindAll() (entity.CategoryList, error)
+	FindAvailableByRestaurantGroupID(groupID int64) (entity.CategoryList, error)
+	FindAvailableByRestaurantGroupIDAndType(groupID int64, cateType string) (entity.CategoryList, error)
 }

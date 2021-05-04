@@ -5,8 +5,6 @@ import (
 )
 
 type TableRepository interface {
-	FindByID(id int64) (*entity.Table, error)
-	FindByAreaID(areaID int64) ([]entity.Table, error)
-	FindByIDs(areaIDs []int64) (entity.TableList, error)
-	FindAll() ([]entity.Table, error)
+	FindAvailableByAreaID(areaID int64) (*entity.TableList, error)
+	FindAvailableByRestaurantIDAndIDs(restaurantID int64, tableIds []int64) (*entity.TableList, error)
 }

@@ -1,6 +1,8 @@
 package entity
 
-import "github.com/smarest/smarest-common/domain/value"
+import (
+	"github.com/smarest/smarest-common/domain/value"
+)
 
 type RestaurantProduct struct {
 	RestaurantID          int64          `db:"restaurant_id" json:"restaurantID"`

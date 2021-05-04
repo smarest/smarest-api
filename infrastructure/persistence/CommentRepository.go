@@ -17,21 +17,12 @@ func NewCommentRepository(dbMap *gorp.DbMap) repository.CommentRepository {
 	return &CommentRepositoryImpl{Table: "comment", DbMap: dbMap}
 }
 
-func (r *CommentRepositoryImpl) FindByID(id int64) (*entity.Comment, error) {
-	var Comment entity.Comment
-	err := r.DbMap.SelectOne(&Comment, "SELECT * FROM "+r.Table+" WHERE id=?", id)
+func (r *CommentRepositoryImpl) FindAvailableByProductID(productID int64) (*entity.CommentList, error) {
+	var items []entity.Comment
+	_, err := r.DbMap.Select(&items, "SELECT * FROM "+r.Table+" WHERE product_id=? AND available=1", productID)
 
 	if err == nil {
-		return &Comment, nil
-	}
-	return nil, err
-}
-func (r *CommentRepositoryImpl) FindAll() ([]entity.Comment, error) {
-	var Comments []entity.Comment
-	_, err := r.DbMap.Select(&Comments, "SELECT * FROM "+r.Table)
-
-	if err == nil {
-		return Comments, nil
+		return entity.NewCommentList(items), nil
 	}
 
 	log.Print(err)

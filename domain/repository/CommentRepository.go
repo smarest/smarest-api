@@ -5,6 +5,5 @@ import (
 )
 
 type CommentRepository interface {
-	FindByID(id int64) (*entity.Comment, error)
-	FindAll() ([]entity.Comment, error)
+	FindAvailableByProductID(productID int64) (*entity.CommentList, error)
 }
