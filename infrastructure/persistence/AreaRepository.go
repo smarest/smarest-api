@@ -3,46 +3,30 @@ package persistence
 import (
 	"github.com/smarest/smarest-api/domain/entity"
 	"github.com/smarest/smarest-api/domain/repository"
+	"github.com/smarest/smarest-common/infrastructure/persistence"
 	"gopkg.in/gorp.v3"
 )
 
 type AreaRepositoryImpl struct {
-	Table string
-	DbMap *gorp.DbMap
+	*persistence.DAOImpl
 }
 
 func NewAreaRepository(dbMap *gorp.DbMap) repository.AreaRepository {
-	return &AreaRepositoryImpl{Table: "area", DbMap: dbMap}
+	return &AreaRepositoryImpl{persistence.NewDAOImpl("`area`", dbMap)}
 }
 
 func (r *AreaRepositoryImpl) FindByID(id int64) (*entity.Area, error) {
 	var item entity.Area
-	err := r.DbMap.SelectOne(&item, "SELECT * FROM "+r.Table+" WHERE id=?", id)
-
-	if err == nil {
-		return &item, nil
-	}
-	return nil, err
-}
-func (r *AreaRepositoryImpl) FindByRestaurantID(resId int64) ([]entity.Area, error) {
-	var items []entity.Area
-	_, err := r.DbMap.Select(&items, "SELECT * FROM "+r.Table+" WHERE restaurant_id=? AND available=1", resId)
-
-	if err == nil {
-		return items, nil
-	}
-
-	return nil, err
+	return &item, r.DAOImpl.FindByID(id, &item)
 }
 
-func (r *AreaRepositoryImpl) FindAll() ([]entity.Area, error) {
+func (r *AreaRepositoryImpl) FindAvailableByID(id int64) (*entity.Area, error) {
+	var item entity.Area
+	return &item, r.DbMap.SelectOne(&item, "SELECT * FROM "+r.Table+" WHERE id=? AND available=1", id)
+}
+
+func (r *AreaRepositoryImpl) FindAvailableByRestaurantID(resId int64) (*entity.AreaList, error) {
 	var items []entity.Area
-	_, err := r.DbMap.Select(&items, "SELECT * FROM "+r.Table)
-
-	if err == nil {
-		return items, nil
-	}
-
-	return nil, err
-
+	_, err := r.DAOImpl.Select(&items, "SELECT * FROM "+r.Table+" WHERE restaurant_id=? AND available=1", resId)
+	return entity.NewAreaList(items), err
 }

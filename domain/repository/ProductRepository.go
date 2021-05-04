@@ -6,6 +6,5 @@ import (
 
 type ProductRepository interface {
 	FindByID(id int64) (*entity.Product, error)
-	FindByRestaurantID(resId int64) ([]entity.Product, error)
-	FindAll() ([]entity.Product, error)
+	FindAvailableByID(id int64) (*entity.Product, error)
 }

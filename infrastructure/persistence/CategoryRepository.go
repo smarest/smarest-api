@@ -3,38 +3,28 @@ package persistence
 import (
 	"github.com/smarest/smarest-api/domain/entity"
 	"github.com/smarest/smarest-api/domain/repository"
+	"github.com/smarest/smarest-common/infrastructure/persistence"
 	"gopkg.in/gorp.v3"
 )
 
 type CategoryRepositoryImpl struct {
-	Table string
-	DbMap *gorp.DbMap
+	*persistence.DAOImpl
 }
 
 func NewCategoryRepository(dbMap *gorp.DbMap) repository.CategoryRepository {
-	return &CategoryRepositoryImpl{Table: "category", DbMap: dbMap}
+	return &CategoryRepositoryImpl{persistence.NewDAOImpl("`category`", dbMap)}
 }
 
-func (r *CategoryRepositoryImpl) FindByID(id int64) (*entity.Category, error) {
-	var item entity.Category
-	err := r.DbMap.SelectOne(&item, "SELECT * FROM "+r.Table+" WHERE id=?", id)
-
-	if err == nil {
-		return &item, nil
-	}
-	return nil, err
-}
-func (r *CategoryRepositoryImpl) FindByType(cateType string) (entity.CategoryList, error) {
+func (r *CategoryRepositoryImpl) FindAvailableByRestaurantGroupID(groupID int64) (entity.CategoryList, error) {
 	var items []entity.Category
-	_, err := r.DbMap.Select(&items, "SELECT * FROM "+r.Table+" WHERE type=?", cateType)
+	_, err := r.DAOImpl.Select(&items, "SELECT * FROM "+r.Table+" WHERE restaurant_group_id=? AND available=1", groupID)
 
 	return entity.NewCategoryList(items), err
 }
 
-func (r *CategoryRepositoryImpl) FindAll() (entity.CategoryList, error) {
+func (r *CategoryRepositoryImpl) FindAvailableByRestaurantGroupIDAndType(groupID int64, cateType string) (entity.CategoryList, error) {
 	var items []entity.Category
-	_, err := r.DbMap.Select(&items, "SELECT * FROM "+r.Table)
+	_, err := r.DAOImpl.Select(&items, "SELECT * FROM "+r.Table+" WHERE restaurant_group_id=? AND type=? AND available=1", groupID, cateType)
 
 	return entity.NewCategoryList(items), err
-
 }

@@ -27,7 +27,7 @@ func NewOrderRepository(dbMap *gorp.DbMap) repository.OrderRepository {
 
 func (r *OrderRepositoryImpl) FindByAreaIDAndGroupByOrderNumberID(id int64) ([]entity.OrderGroupByOrderNumberID, error) {
 	var items []entity.OrderGroupByOrderNumberID
-	_, err := r.DAOImpl.Select(&items, "SELECT o.order_number_id,GROUP_CONCAT(DISTINCT(t.name)) as table_name, sum(o.count) as count_sum,sum(o.price) as price_sum FROM "+r.Table+" o INNER JOIN `table` t ON t.id = o.table_id WHERE t.area_id=? GROUP BY o.order_number_id ORDER BY o.order_time DESC", id)
+	_, err := r.DAOImpl.Select(&items, "SELECT order_number_id,GROUP_CONCAT(DISTINCT(name)) as table_name, sum(count) as count_sum,sum(price) as price_sum FROM (SELECT o.order_number_id,t.name,o.count,price*count AS price,o.order_time FROM "+r.Table+" o INNER JOIN `table` t ON t.id = o.table_id WHERE t.area_id=?) AS t GROUP BY order_number_id ORDER BY order_time DESC", id)
 
 	if err != nil {
 		return nil, err
@@ -36,16 +36,10 @@ func (r *OrderRepositoryImpl) FindByAreaIDAndGroupByOrderNumberID(id int64) ([]e
 	return items, nil
 }
 
-func (r *OrderRepositoryImpl) FindByOrderNumberID(orderNumberID int64) (entity.OrderList, error) {
+func (r *OrderRepositoryImpl) FindByOrderNumberID(orderNumberID int64) (*entity.OrderList, error) {
 	var items []entity.Order
 	_, err := r.DAOImpl.Select(&items, "SELECT * FROM "+r.Table+" WHERE order_number_id=? ORDER BY order_time DESC", orderNumberID)
 	return entity.NewOrderList(items), err
-}
-
-func (r *OrderRepositoryImpl) FindDetailByOrderNumberID(orderNumberID int64) (entity.OrderDetailList, error) {
-	var items []entity.OrderDetail
-	_, err := r.DAOImpl.Select(&items, "SELECT o.*, t.name as table_name, p.name as product_name FROM "+r.Table+" o LEFT JOIN `table` t ON o.table_id=t.id LEFT JOIN product p ON o.product_id=p.id WHERE o.order_number_id=? ORDER BY o.order_time DESC", orderNumberID)
-	return entity.NewOrderDetailList(items), err
 }
 
 func (r *OrderRepositoryImpl) RegisterOrder(order entity.Order) (int64, error) {
@@ -61,36 +55,6 @@ func (r *OrderRepositoryImpl) UpdateOrder(order entity.Order) (int64, error) {
 	return r.DAOImpl.UpdateColumns(updateFilter, &order)
 }
 
-func (r *OrderRepositoryImpl) RegisterOrderNumber() (int64, error) {
-	var orderNumber entity.OrderNumber
-	err := r.DbMap.SelectOne(&orderNumber, "SELECT * FROM `order_number` WHERE status=? ORDER BY id ASC LIMIT 1", 0)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			orderNumber = entity.OrderNumber{Status: true}
-			//return r.DAOImpl.InsertBySQL("INSERT INTO `order_number` (status) VALUES(?)", true)
-			return orderNumber.ID, r.DAOImpl.Insert(&orderNumber)
-		}
-		return 0, err
-	}
-	//return r.DAOImpl.UpdateBySQL("UPDATE `order_number` SET status=? WHERE id=?", true, orderNumber.ID)
-	orderNumber.Status = true
-	_, err = r.DAOImpl.Update(&orderNumber)
-	return orderNumber.ID, err
-}
-func (r *OrderRepositoryImpl) DeleteOrderNumber(orderNumberID int64) (int64, error) {
-	orderNumber := entity.OrderNumber{ID: orderNumberID, Status: false}
-	return r.DAOImpl.Update(&orderNumber)
-	//return r.DAOImpl.Delete("UPDATE `order_number` SET status=0 WHERE id=?", orderNumberID)
-}
-
-func (r *OrderRepositoryImpl) FindOrderNumber(orderNumberID int64) (*entity.OrderNumber, error) {
-	var result entity.OrderNumber
-	err := r.DbMap.SelectOne(&result, "SELECT * FROM `order_number` WHERE id=?", orderNumberID)
-	if err != nil && err == sql.ErrNoRows {
-		return nil, nil
-	}
-	return &result, err
-}
 func (r *OrderRepositoryImpl) DeleteByOrderNumberIDAndIDNotIn(orderNumberID int64, ids []int64) (int64, error) {
 	sqlQuery := "DELETE FROM " + r.Table + " WHERE order_number_id=?"
 	if len(ids) > 0 {
@@ -102,4 +66,31 @@ func (r *OrderRepositoryImpl) DeleteByOrderNumberIDAndIDNotIn(orderNumberID int6
 	}
 
 	return r.DAOImpl.DeleteBySQL(sqlQuery, orderNumberID)
+}
+
+func (r *OrderRepositoryImpl) RegisterOrderNumber(restaurantID int64) (*entity.OrderNumber, error) {
+	var orderNumber *entity.OrderNumber
+	err := r.DbMap.SelectOne(&orderNumber, "SELECT * FROM `order_number` WHERE status=0 ORDER BY id ASC LIMIT 1")
+	if err != nil {
+		if err == sql.ErrNoRows {
+			orderNumber = &entity.OrderNumber{RestaurantID: restaurantID, Status: true}
+			//return r.DAOImpl.InsertBySQL("INSERT INTO `order_number` (status) VALUES(?)", true)
+			return orderNumber, r.DAOImpl.Insert(orderNumber)
+		}
+		return nil, err
+	}
+	//return r.DAOImpl.UpdateBySQL("UPDATE `order_number` SET status=? WHERE id=?", true, orderNumber.ID)
+	orderNumber.Status = true
+	_, err = r.DAOImpl.Update(orderNumber)
+	return orderNumber, err
+}
+func (r *OrderRepositoryImpl) DeleteOrderNumber(orderNumber *entity.OrderNumber) (int64, error) {
+	orderNumber.Status = false
+	return r.DAOImpl.Update(orderNumber)
+	//return r.DAOImpl.Delete("UPDATE `order_number` SET status=0 WHERE id=?", orderNumberID)
+}
+
+func (r *OrderRepositoryImpl) FindOrderNumber(orderNumberID int64) (*entity.OrderNumber, error) {
+	var result entity.OrderNumber
+	return &result, r.DbMap.SelectOne(&result, "SELECT * FROM `order_number` WHERE id=?", orderNumberID)
 }

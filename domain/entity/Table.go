@@ -1,6 +1,10 @@
 package entity
 
-import "github.com/smarest/smarest-common/domain/value"
+import (
+	"strings"
+
+	"github.com/smarest/smarest-common/domain/value"
+)
 
 type Table struct {
 	ID              int64           `db:"id" json:"id"`
@@ -14,16 +18,46 @@ type Table struct {
 	LastUpdatedDate *value.DateTime `db:"last_updated_date" json:"lastUpdatedDate"`
 }
 
+func (item *Table) ToSlice(fields string) interface{} {
+	if fields == "" {
+		return *item
+	}
+	result := make(map[string]interface{})
+	// Loop over the parts from the string.
+	for _, field := range strings.Split(fields, ",") {
+		switch field {
+		case "id":
+			result[field] = item.ID
+		case "name":
+			result[field] = item.Name
+		case "description":
+			result[field] = item.Description
+		case "areaID":
+			result[field] = item.AreaID
+		case "creator":
+			result[field] = item.Creator
+		case "createdDate":
+			result[field] = item.CreatedDate
+		case "updater":
+			result[field] = item.Updater
+		case "lastUpdatedDate":
+			result[field] = item.LastUpdatedDate
+		default:
+		}
+	}
+	return result
+}
+
 type TableList struct {
 	Tables []Table
 }
 
-func NewTableList(tableList []Table) TableList {
-	return TableList{tableList}
+func NewTableList(tableList []Table) *TableList {
+	return &TableList{tableList}
 }
 
-func CreateEmptyTableList() TableList {
-	return TableList{make([]Table, 0)}
+func CreateEmptyTableList() *TableList {
+	return &TableList{make([]Table, 0)}
 }
 
 func (l *TableList) Add(table Table) {
@@ -37,4 +71,32 @@ func (l *TableList) FindByID(tableID int64) *Table {
 		}
 	}
 	return nil
+}
+
+func (l *TableList) GetAvailable() *TableList {
+	return l.FilterBy(func(item Table) bool { return item.Available })
+}
+
+func (l *TableList) FilterBy(filter TableFilter) *TableList {
+	list := make([]Table, 0)
+	for _, u := range l.Tables {
+		if filter(u) {
+			list = append(list, u)
+		}
+	}
+	return NewTableList(list)
+}
+
+type TableFilter func(item Table) bool
+
+func (l *TableList) ToSlice(fields string) []interface{} {
+	var result []interface{} = make([]interface{}, len(l.Tables))
+	for i, item := range l.Tables {
+		result[i] = item.ToSlice(fields)
+	}
+	return result
+}
+
+func (l *TableList) ToArray() []Table {
+	return l.Tables
 }

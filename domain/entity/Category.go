@@ -7,25 +7,31 @@ import (
 )
 
 type Category struct {
-	ID              int64          `db:"id" json:"id"`
-	Name            string         `db:"name" json:"name"`
-	Description     *string        `db:"description" json:"description"`
-	Available       bool           `db:"available" json:"available"`
-	Image           *string        `db:"image" json:"image"`
-	Type            string         `db:"type" json:"type"`
-	Creator         string         `db:"creator" json:"creator"`
-	CreatedDate     value.DateTime `db:"created_date" json:"createdDate"`
-	Updater         string         `db:"updater" json:"updater"`
-	LastUpdatedDate value.DateTime `db:"last_updated_date" json:"lastUpdatedDate"`
+	ID                int64          `db:"id" json:"id"`
+	RestaurantGroupID int64          `db:"restaurant_group_id" json:"restaurantGroupID"`
+	Name              string         `db:"name" json:"name"`
+	Description       *string        `db:"description" json:"description"`
+	Available         bool           `db:"available" json:"available"`
+	Image             *string        `db:"image" json:"image"`
+	Type              string         `db:"type" json:"type"`
+	Creator           string         `db:"creator" json:"creator"`
+	CreatedDate       value.DateTime `db:"created_date" json:"createdDate"`
+	Updater           string         `db:"updater" json:"updater"`
+	LastUpdatedDate   value.DateTime `db:"last_updated_date" json:"lastUpdatedDate"`
 }
 
-func (item *Category) ToSlice(fields string) map[string]interface{} {
+func (item *Category) ToSlice(fields string) interface{} {
+	if fields == "" {
+		return *item
+	}
 	result := make(map[string]interface{})
 	// Loop over the parts from the string.
 	for _, field := range strings.Split(fields, ",") {
 		switch field {
 		case "id":
 			result[field] = item.ID
+		case "restaurantGroupID":
+			result[field] = item.RestaurantGroupID
 		case "name":
 			result[field] = item.Name
 		case "description":
