@@ -8,6 +8,7 @@ type OrderRepository interface {
 	DAO
 	FindByAreaIDAndGroupByOrderNumberID(id int64) ([]entity.OrderGroupByOrderNumberID, error)
 	FindByOrderNumberID(orderNumberID int64) (*entity.OrderList, error)
+	FindByRestaurantID(restaurantID int64) (*entity.OrderList, error)
 	RegisterOrder(order entity.Order) (int64, error)
 	UpdateOrder(order entity.Order) (int64, error)
 	DeleteByOrderNumberIDAndIDNotIn(orderNumberID int64, ids []int64) (int64, error)

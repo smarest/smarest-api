@@ -72,6 +72,7 @@ func InitBean() (*Bean, error) {
 	bean.OrderService = service.NewOrderService(
 		bean.AreaRepository,
 		bean.OrderRepository,
+		bean.ProductRepository,
 		bean.RestaurantProductRepository,
 		bean.TableRepository,
 		entity.NewOrderFactory())

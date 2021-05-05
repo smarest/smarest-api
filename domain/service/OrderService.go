@@ -15,6 +15,7 @@ type OrderService struct {
 	AreaRepository              repository.AreaRepository
 	OrderRepository             repository.OrderRepository
 	RestaurantProductRepository repository.RestaurantProductRepository
+	ProductRepository           repository.ProductRepository
 	TableRepository             repository.TableRepository
 	OrderFactory                entity.OrderFactory
 }
@@ -22,12 +23,14 @@ type OrderService struct {
 func NewOrderService(
 	areaRepository repository.AreaRepository,
 	orderRepository repository.OrderRepository,
+	productRepository repository.ProductRepository,
 	restaurantProductRepository repository.RestaurantProductRepository,
 	tableRepository repository.TableRepository,
 	orderFactory entity.OrderFactory) *OrderService {
 	return &OrderService{
 		AreaRepository:              areaRepository,
 		OrderRepository:             orderRepository,
+		ProductRepository:           productRepository,
 		RestaurantProductRepository: restaurantProductRepository,
 		TableRepository:             tableRepository,
 		OrderFactory:                orderFactory,
@@ -77,12 +80,48 @@ func (s *OrderService) GetOrderDetailsByRestaurantIDAndOrderNumberID(restaurantI
 	// get Products and Tables
 	productIDs, tableIds := orders.GetDistinctProductIDsAndTableIDs()
 	// get Products
-	productList, err := s.RestaurantProductRepository.FindAvailableProductsByRestaurantIDAndIDs(restaurantID, productIDs)
+	productList, err := s.ProductRepository.FindByIDs(productIDs)
 	if err != nil {
 		return nil, exception.CreateError(exception.CodeSystemError, fmt.Sprintf("System error: [%s]", err))
 	}
 	// get Table
-	tableList, err := s.TableRepository.FindAvailableByRestaurantIDAndIDs(restaurantID, tableIds)
+	tableList, err := s.TableRepository.FindByIDs(tableIds)
+	if err != nil {
+		return nil, exception.CreateError(exception.CodeSystemError, fmt.Sprintf("System error: [%s]", err))
+	}
+
+	orderDetails := entity.CreateEmptyOrderDetailList()
+	for _, order := range orders.Orders {
+		product := productList.FindByID(order.ProductID)
+		if product == nil {
+			return nil, exception.CreateError(exception.CodeNotFound, fmt.Sprintf("Product not found. productID=[%d]", order.ProductID))
+		}
+
+		table := tableList.FindByID(order.TableID)
+		if table == nil {
+			return nil, exception.CreateError(exception.CodeNotFound, fmt.Sprintf("Table not found. tableID=[%d]", order.TableID))
+		}
+		orderDetails.Add(entity.NewOrderDetail(&order, table, product))
+	}
+
+	return orderDetails, nil
+}
+
+func (s *OrderService) GetOrderDetailsByRestaurantID(restaurantID int64) (*entity.OrderDetailList, *exception.Error) {
+	var orders, err = s.OrderRepository.FindByRestaurantID(restaurantID)
+	if err != nil {
+		return nil, exception.CreateError(exception.CodeSystemError, fmt.Sprintf("System error: [%s]", err))
+	}
+
+	// get Products and Tables
+	productIDs, tableIds := orders.GetDistinctProductIDsAndTableIDs()
+	// get Products
+	productList, err := s.ProductRepository.FindByIDs(productIDs)
+	if err != nil {
+		return nil, exception.CreateError(exception.CodeSystemError, fmt.Sprintf("System error: [%s]", err))
+	}
+	// get Table
+	tableList, err := s.TableRepository.FindByIDs(tableIds)
 	if err != nil {
 		return nil, exception.CreateError(exception.CodeSystemError, fmt.Sprintf("System error: [%s]", err))
 	}
