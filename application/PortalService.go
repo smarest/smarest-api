@@ -6,8 +6,10 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/smarest/smarest-common/domain/entity"
+	"github.com/smarest/smarest-api/domain/entity"
+	common_entity "github.com/smarest/smarest-common/domain/entity"
 	"github.com/smarest/smarest-common/domain/entity/exception"
+	"github.com/smarest/smarest-common/util"
 )
 
 type PortalService struct {
@@ -171,29 +173,49 @@ func (s *PortalService) GetRestaurantOrdersByAreaIDAndGroupByOrderNumberID(c *gi
 	c.JSON(http.StatusOK, orders)
 }
 
-func (s *PortalService) GetRestaurantOrderDetailsByOrderNumberID(c *gin.Context) {
+func (s *PortalService) GetRestaurantOrderDetails(c *gin.Context) {
+	orderNumberIDStr := c.Query("orderNumberID")
+	groupBy := c.Query("groupBy")
+	orderBy := c.Query("orderBy")
 	restID, paramErr := strconv.ParseInt(c.Params.ByName("restaurantID"), 0, 64)
 	if paramErr != nil {
 		s.HandlerError(c, exception.CreateError(exception.CodeValueInvalid, "restaurantID invalid."))
 		return
 	}
-	orderNumberID, paramErr := strconv.ParseInt(c.Query("orderNumberID"), 0, 64)
-	if paramErr != nil {
-		s.HandlerError(c, exception.CreateError(exception.CodeValueInvalid, "orderNumberID invalid."))
-		return
+	var orders *entity.OrderDetailList
+	var err *exception.Error
+	if orderNumberIDStr != "" {
+		orderNumberIDInt, paramErr := strconv.ParseInt(c.Query("orderNumberID"), 0, 64)
+		if paramErr != nil {
+			s.HandlerError(c, exception.CreateError(exception.CodeValueInvalid, "orderNumberID invalid."))
+			return
+		}
+		orders, err = s.Bean.OrderService.GetOrderDetailsByRestaurantIDAndOrderNumberID(restID, orderNumberIDInt)
+	} else {
+		orders, err = s.Bean.OrderService.GetOrderDetailsByRestaurantID(restID)
 	}
 
-	var orders, err = s.Bean.OrderService.GetOrderDetailsByRestaurantIDAndOrderNumberID(restID, orderNumberID)
 	if err != nil {
 		s.HandlerError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, orders.ToSlice(c.Query("fields")))
+	if orderBy == util.ORDER_SORT_BY_PRODUCT {
+		orders.SortByProductName()
+	} else if orderBy == util.ORDER_SORT_BY_TIME {
+		orders.SortByOrderTime()
+	}
+
+	if groupBy == util.ORDER_GROUP_BY_PRODUCT {
+		c.JSON(http.StatusOK, orders.GroupByProductIDAndToSlice(c.Query("fields")))
+	} else {
+		c.JSON(http.StatusOK, orders.ToSlice(c.Query("fields")))
+	}
+
 }
 
 func (s *PortalService) PutRestaurantOrders(c *gin.Context) {
-	orderRequest := entity.OrderRequest{}
+	orderRequest := common_entity.OrderRequest{}
 	if err := c.ShouldBindJSON(&orderRequest); err != nil {
 		s.HandlerError(c, exception.GetError(exception.CodeValueInvalid))
 		return

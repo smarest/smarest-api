@@ -42,6 +42,12 @@ func (r *OrderRepositoryImpl) FindByOrderNumberID(orderNumberID int64) (*entity.
 	return entity.NewOrderList(items), err
 }
 
+func (r *OrderRepositoryImpl) FindByRestaurantID(restaurantID int64) (*entity.OrderList, error) {
+	var items []entity.Order
+	_, err := r.DAOImpl.Select(&items, "SELECT o.* FROM `order_number` n LEFT JOIN "+r.Table+" o ON n.id=o.order_number_id WHERE n.status=1 AND o.status=0 AND n.restaurant_id=?", restaurantID)
+	return entity.NewOrderList(items), err
+}
+
 func (r *OrderRepositoryImpl) RegisterOrder(order entity.Order) (int64, error) {
 	//sql := "INSERT INTO " + r.Table
 	//sql += "(waiter_id,chef_id,order_number_id,table_id,product_id,count,comments,order_time,status,price) VALUES "

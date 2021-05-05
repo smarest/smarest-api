@@ -30,7 +30,7 @@ func main() {
 			portal.GET("/restaurants/:restaurantID/areas/:areaID/tables", bean.PortalService.GetRestaurantTablesByAreaID)
 			portal.GET("/restaurants/:restaurantID/areas/:areaID/orders", bean.PortalService.GetRestaurantOrdersByAreaIDAndGroupByOrderNumberID)
 			portal.GET("/restaurants/:restaurantID/categories/:categoryID/products", bean.PortalService.GetRestaurantProductsByCategoryID)
-			portal.GET("/restaurants/:restaurantID/orders", bean.PortalService.GetRestaurantOrderDetailsByOrderNumberID)
+			portal.GET("/restaurants/:restaurantID/orders", bean.PortalService.GetRestaurantOrderDetails)
 			portal.PUT("/restaurants/:restaurantID/orders", bean.PortalService.PutRestaurantOrders)
 		}
 

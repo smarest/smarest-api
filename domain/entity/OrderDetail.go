@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/smarest/smarest-common/domain/value"
@@ -111,4 +112,47 @@ func (l *OrderDetailList) ToSlice(fields string) interface{} {
 		result[i] = item.ToSlice(fields)
 	}
 	return result
+}
+
+func (l *OrderDetailList) SortByProductID() *OrderDetailList {
+	sort.Slice(l.OrderDetails, func(i, j int) bool { return l.OrderDetails[i].ProductID < l.OrderDetails[j].ProductID })
+	return l
+}
+
+func (l *OrderDetailList) SortByProductName() *OrderDetailList {
+	sort.Slice(l.OrderDetails, func(i, j int) bool {
+		obj1 := l.OrderDetails[i]
+		obj2 := l.OrderDetails[j]
+		return strings.Compare(obj1.ProductName, obj2.ProductName) < 0 || obj1.ProductID < obj2.ProductID || obj1.OrderTime.Unix() < obj2.OrderTime.Unix()
+	})
+	return l
+}
+
+func (l *OrderDetailList) GroupByProductIDAndToSlice(fields string) interface{} {
+	groupMap := make(map[int64][]interface{})
+	for _, u := range l.OrderDetails {
+		group, value := groupMap[u.ProductID]
+		if !value {
+			group = make([]interface{}, 0)
+		}
+		group = append(group, u.ToSlice(fields))
+		groupMap[u.ProductID] = group
+	}
+
+	result := make([]interface{}, 0)
+	for _, value := range groupMap {
+		result = append(result, value)
+	}
+	return result
+}
+
+func (l *OrderDetailList) SortByOrderTime() *OrderDetailList {
+	sort.Slice(l.OrderDetails, func(i, j int) bool { return l.OrderDetails[i].OrderTime.Unix() < l.OrderDetails[j].OrderTime.Unix() })
+	return l
+}
+
+// display entity
+type OrderDetailGroupingByProductID struct {
+	ProductID    int64         `json:"productID"`
+	OrderDetails []OrderDetail `json:"orderDetails"`
 }
